@@ -18,18 +18,18 @@ def download_image(url, image_name):
         image.write(image_response.content)
 
 
-def get_random_comics_image_url_and_text():
-    last_comics_url = 'https://xkcd.com/info.0.json'
-    last_comics_response = requests.get(last_comics_url)
-    last_comics_response.raise_for_status()
-    last_comics_id = last_comics_response.json()['num']
-    target_comics_url = f'https://xkcd.com/{random.randint(1, last_comics_id)}/info.0.json'
-    target_comics_response = requests.get(target_comics_url)
-    target_comics_response.raise_for_status()
-    target_comics_payload = target_comics_response.json()
-    target_comics_image_url = target_comics_payload['img']
-    target_comics_text = target_comics_payload['alt']
-    return target_comics_image_url, target_comics_text
+def get_random_comic_image_url_and_text():
+    last_comic_url = 'https://xkcd.com/info.0.json'
+    last_comic_response = requests.get(last_comic_url)
+    last_comic_response.raise_for_status()
+    last_comic_id = last_comic_response.json()['num']
+    target_comic_url = f'https://xkcd.com/{random.randint(1, last_comic_id)}/info.0.json'
+    target_comic_response = requests.get(target_comic_url)
+    target_comic_response.raise_for_status()
+    target_comic_payload = target_comic_response.json()
+    target_comic_image_url = target_comic_payload['img']
+    target_comic_text = target_comic_payload['alt']
+    return target_comic_image_url, target_comic_text
 
 
 def add_required_params(params=None):
@@ -64,9 +64,9 @@ if __name__ == '__main__':
     vk_group_id = env('VK_GROUP_ID')
     
     print('Скрипт запущен')
-    comics_image_url, comics_text = get_random_comics_image_url_and_text()
-    comics_extension = get_extension(comics_image_url)
-    download_image(comics_image_url, 'comics')
+    comic_image_url, comic_text = get_random_comic_image_url_and_text()
+    comic_extension = get_extension(comic_image_url)
+    download_image(comic_image_url, 'comic')
     print('Комикс скачан в локальную директорию')
 
     get_wall_upload_server_payload = get_request_vk_api(
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     print('URL для загрузки комикса получен')
 
     params = add_required_params()    
-    with open(f'comics{comics_extension}', 'rb') as photo:
+    with open(f'comic{comic_extension}', 'rb') as photo:
         response = requests.post(upload_url, params=params, files={'photo': photo})
     response.raise_for_status()
     save_wall_upload_server_payload = response.json()
@@ -101,12 +101,12 @@ if __name__ == '__main__':
         {
             'owner_id': f'-{vk_group_id}',
             'from_group': 1,
-            'message': comics_text,
+            'message': comic_text,
             'attachments': f'photo{owner_id}_{photo_id}'
         }
         )
     print('Комикс опубликован на стене группы')
 
-    os.remove(f'comics{comics_extension}')
+    os.remove(f'comic{comic_extension}')
     print('Комикс удален из локальной директории')
     print('Скрипт завершил работу')
