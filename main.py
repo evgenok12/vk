@@ -100,22 +100,20 @@ if __name__ == '__main__':
     vk_group_id = env('VK_GROUP_ID')
     
     print('Скрипт запущен')
-
     comic_text, image_path = download_random_comic()
     print('Комикс скачан в локальную директорию')
 
-    upload_url = get_image_upload_url()
-    print('URL для загрузки комикса получен')
-
-    server_param, photo_param, hash_param = upload_image_to_server(upload_url, image_path)
-    print('Комикс загружен на сервер') 
-
-    owner_id, photo_id = save_image_to_album(server_param, photo_param, hash_param)
-    print('Комикс сохранен в альбоме группы')   
-
-    post_comic_to_wall(owner_id, photo_id, comic_text)
-    print('Комикс опубликован на стене группы')
-
-    os.remove(image_path)
-    print('Комикс удален из локальной директории')
-    print('Скрипт завершил работу')
+    try:
+        upload_url = get_image_upload_url()
+        print('URL для загрузки комикса получен')
+        server_param, photo_param, hash_param = upload_image_to_server(upload_url, image_path)
+        print('Комикс загружен на сервер') 
+        owner_id, photo_id = save_image_to_album(server_param, photo_param, hash_param)
+        print('Комикс сохранен в альбоме группы')   
+        post_comic_to_wall(owner_id, photo_id, comic_text)
+        print('Комикс опубликован на стене группы')  
+    finally:
+        os.remove(image_path)
+        print('Комикс удален из локальной директории')
+    
+    print('Скрипт успешно завершил работу')
