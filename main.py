@@ -1,24 +1,11 @@
 import os
 from urllib.parse import urlsplit
-from pathlib import Path
 import random
 import requests
 from environs import Env
 
 
-def get_extension(url):
-    return os.path.splitext(urlsplit(url).path)[1]
-
-
-def download_image(url, image_name):
-    image_response = requests.get(url)
-    image_response.raise_for_status()
-    extension = get_extension(url)
-    with open(f'{image_name}{extension}', 'wb') as image:
-        image.write(image_response.content)
-
-
-def get_random_comic_image_url_and_text():
+def download_random_comic():
     last_comic_url = 'https://xkcd.com/info.0.json'
     last_comic_response = requests.get(last_comic_url)
     last_comic_response.raise_for_status()
@@ -29,30 +16,65 @@ def get_random_comic_image_url_and_text():
     target_comic_payload = target_comic_response.json()
     target_comic_image_url = target_comic_payload['img']
     target_comic_text = target_comic_payload['alt']
-    return target_comic_image_url, target_comic_text
+    target_comic_image_response = requests.get(target_comic_image_url)
+    target_comic_image_response.raise_for_status()
+    target_comic_image_extension = os.path.splitext(urlsplit(target_comic_image_url).path)[1]
+    target_comic_image_path = f'comic{target_comic_image_extension}'
+    with open(target_comic_image_path, 'wb') as image:
+        image.write(target_comic_image_response.content)
+    return target_comic_text, target_comic_image_path
 
 
-def add_required_params(params=None):
-    required_params = {'access_token': vk_access_token, 'v': vk_api_version}
-    if params is None:
-        return required_params
-    return params | required_params
-
-
-def post_request_vk_api(method, additional_params=None, files=None):
-    url = f'https://api.vk.com/method/{method}'
-    params = add_required_params(additional_params)
-    response = requests.post(url, params=params, files=files)
-    response.raise_for_status()
-    return response
-
-
-def get_request_vk_api(method, additional_params):
-    url = f'https://api.vk.com/method/{method}'
-    params = add_required_params(additional_params)
+def get_image_upload_url():
+    url = 'https://api.vk.com/method/photos.getWallUploadServer'
+    params = {
+        'access_token': vk_access_token,
+        'v': vk_api_version,
+        'group_id': vk_group_id
+    }
     response = requests.get(url, params=params)
     response.raise_for_status()
-    return response
+    payload = response.json()
+    return payload['response']['upload_url']
+
+
+def upload_image_to_server(upload_url, image_path):
+    params = {'access_token': vk_access_token, 'v': vk_api_version}
+    with open(image_path, 'rb') as comic:
+        response = requests.post(upload_url, params=params, files={'photo': comic})
+    response.raise_for_status()
+    payload = response.json()
+    return payload['server'], payload['photo'], payload['hash']
+
+
+def save_image_to_album(server, photo, hash):
+    url = 'https://api.vk.com/method/photos.saveWallPhoto'
+    params = {
+        'access_token': vk_access_token,
+        'v': vk_api_version,
+        'group_id': vk_group_id,
+        'server': server,
+        'photo': photo,
+        'hash': hash,
+    }
+    response = requests.post(url, params=params)
+    response.raise_for_status()
+    payload = response.json()
+    return payload['response'][0]['owner_id'], payload['response'][0]['id']
+
+
+def post_comic_to_wall(owner_id, photo_id, message):
+    url = 'https://api.vk.com/method/wall.post'
+    params = {
+        'access_token': vk_access_token,
+        'v': vk_api_version,
+        'owner_id': f'-{vk_group_id}',
+        'from_group': 1,
+        'message': message,
+        'attachments': f'photo{owner_id}_{photo_id}'
+    }
+    response = requests.post(url, params=params)
+    response.raise_for_status()
 
 
 if __name__ == '__main__':
@@ -64,49 +86,22 @@ if __name__ == '__main__':
     vk_group_id = env('VK_GROUP_ID')
     
     print('Скрипт запущен')
-    comic_image_url, comic_text = get_random_comic_image_url_and_text()
-    comic_extension = get_extension(comic_image_url)
-    download_image(comic_image_url, 'comic')
+
+    comic_text, image_path = download_random_comic()
     print('Комикс скачан в локальную директорию')
 
-    get_wall_upload_server_payload = get_request_vk_api(
-        'photos.getWallUploadServer',
-        {'group_id': vk_group_id}
-        ).json()
-    upload_url = get_wall_upload_server_payload['response']['upload_url']
+    upload_url = get_image_upload_url()
     print('URL для загрузки комикса получен')
 
-    params = add_required_params()    
-    with open(f'comic{comic_extension}', 'rb') as photo:
-        response = requests.post(upload_url, params=params, files={'photo': photo})
-    response.raise_for_status()
-    save_wall_upload_server_payload = response.json()
+    server_param, photo_param, hash_param = upload_image_to_server(upload_url, image_path)
     print('Комикс загружен на сервер') 
 
-    save_wall_photo_payload = post_request_vk_api(
-        'photos.saveWallPhoto',
-        {
-            'server': save_wall_upload_server_payload['server'],
-            'photo': save_wall_upload_server_payload['photo'],
-            'hash': save_wall_upload_server_payload['hash'],
-            'group_id': vk_group_id
-        }
-        ).json()
+    owner_id, photo_id = save_image_to_album(server_param, photo_param, hash_param)
     print('Комикс сохранен в альбоме группы')   
 
-    owner_id = save_wall_photo_payload["response"][0]["owner_id"]
-    photo_id = save_wall_photo_payload["response"][0]["id"]
-    wall_post_payload = post_request_vk_api(
-        'wall.post',
-        {
-            'owner_id': f'-{vk_group_id}',
-            'from_group': 1,
-            'message': comic_text,
-            'attachments': f'photo{owner_id}_{photo_id}'
-        }
-        )
+    post_comic_to_wall(owner_id, photo_id, comic_text)
     print('Комикс опубликован на стене группы')
 
-    os.remove(f'comic{comic_extension}')
+    os.remove(image_path)
     print('Комикс удален из локальной директории')
     print('Скрипт завершил работу')
