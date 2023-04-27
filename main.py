@@ -33,10 +33,6 @@ def get_random_comics_image_url_and_text():
     return target_comics_image_url, target_comics_text
 
 
-def get_url_with_method(method):
-    return f'https://api.vk.com/method/{method}'
-
-
 def add_required_params(params=None):
     required_params = {'access_token': vk_access_token, 'v': vk_api_version}
     if params is None:
@@ -45,7 +41,7 @@ def add_required_params(params=None):
 
 
 def post_request_vk_api(method, additional_params=None, files=None):
-    url = get_url_with_method(method)
+    url = f'https://api.vk.com/method/{method}'
     params = add_required_params(additional_params)
     response = requests.post(url, params=params, files=files)
     response.raise_for_status()
@@ -53,7 +49,7 @@ def post_request_vk_api(method, additional_params=None, files=None):
 
 
 def get_request_vk_api(method, additional_params):
-    url = get_url_with_method(method)
+    url = f'https://api.vk.com/method/{method}'
     params = add_required_params(additional_params)
     response = requests.get(url, params=params)
     response.raise_for_status()
