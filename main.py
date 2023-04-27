@@ -27,7 +27,8 @@ def download_random_comic():
     target_comic_text = target_comic_payload['alt']
     target_comic_image_response = requests.get(target_comic_image_url)
     target_comic_image_response.raise_for_status()
-    target_comic_image_extension = os.path.splitext(urlsplit(target_comic_image_url).path)[1]
+    target_comic_image_extension = os.path.splitext(
+        urlsplit(target_comic_image_url).path)[1]
     target_comic_image_path = f'comic{target_comic_image_extension}'
     with open(target_comic_image_path, 'wb') as image:
         image.write(target_comic_image_response.content)
@@ -51,7 +52,8 @@ def get_image_upload_url():
 def upload_image_to_server(upload_url, image_path):
     params = {'access_token': vk_access_token, 'v': vk_api_version}
     with open(image_path, 'rb') as comic:
-        response = requests.post(upload_url, params=params, files={'photo': comic})
+        response = requests.post(
+            upload_url, params=params, files={'photo': comic})
     response.raise_for_status()
     payload = response.json()
     raise_for_status_vk_api(payload)
@@ -96,9 +98,8 @@ if __name__ == '__main__':
     env.read_env()
     vk_access_token = env('VK_ACCESS_TOKEN')
     vk_api_version = env('VK_API_VERSION', default='5.131')
-    vk_id_client = env('VK_APP_CLIENT_ID')
     vk_group_id = env('VK_GROUP_ID')
-    
+
     print('Скрипт запущен')
     comic_text, image_path = download_random_comic()
     print('Комикс скачан в локальную директорию')
@@ -106,14 +107,16 @@ if __name__ == '__main__':
     try:
         upload_url = get_image_upload_url()
         print('URL для загрузки комикса получен')
-        server_param, photo_param, hash_param = upload_image_to_server(upload_url, image_path)
-        print('Комикс загружен на сервер') 
-        owner_id, photo_id = save_image_to_album(server_param, photo_param, hash_param)
-        print('Комикс сохранен в альбоме группы')   
+        server_param, photo_param, hash_param = upload_image_to_server(
+            upload_url, image_path)
+        print('Комикс загружен на сервер')
+        owner_id, photo_id = save_image_to_album(
+            server_param, photo_param, hash_param)
+        print('Комикс сохранен в альбоме группы')
         post_comic_to_wall(owner_id, photo_id, comic_text)
-        print('Комикс опубликован на стене группы')  
+        print('Комикс опубликован на стене группы')
     finally:
         os.remove(image_path)
         print('Комикс удален из локальной директории')
-    
+
     print('Скрипт успешно завершил работу')
