@@ -5,6 +5,15 @@ import requests
 from environs import Env
 
 
+def raise_for_status_vk_api(payload):
+    if 'error' in payload:
+        error = payload['error']
+        message = (
+            f"VK API Error {error['error_code']}: {error['error_msg']}"
+        )
+        raise requests.HTTPError(message)
+
+
 def download_random_comic():
     last_comic_url = 'https://xkcd.com/info.0.json'
     last_comic_response = requests.get(last_comic_url)
@@ -35,6 +44,7 @@ def get_image_upload_url():
     response = requests.get(url, params=params)
     response.raise_for_status()
     payload = response.json()
+    raise_for_status_vk_api(payload)
     return payload['response']['upload_url']
 
 
@@ -44,6 +54,7 @@ def upload_image_to_server(upload_url, image_path):
         response = requests.post(upload_url, params=params, files={'photo': comic})
     response.raise_for_status()
     payload = response.json()
+    raise_for_status_vk_api(payload)
     return payload['server'], payload['photo'], payload['hash']
 
 
@@ -60,6 +71,7 @@ def save_image_to_album(server, photo, hash):
     response = requests.post(url, params=params)
     response.raise_for_status()
     payload = response.json()
+    raise_for_status_vk_api(payload)
     return payload['response'][0]['owner_id'], payload['response'][0]['id']
 
 
@@ -75,6 +87,8 @@ def post_comic_to_wall(owner_id, photo_id, message):
     }
     response = requests.post(url, params=params)
     response.raise_for_status()
+    payload = response.json()
+    raise_for_status_vk_api(payload)
 
 
 if __name__ == '__main__':
