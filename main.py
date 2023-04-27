@@ -10,12 +10,11 @@ def get_extension(url):
     return os.path.splitext(urlsplit(url).path)[1]
 
 
-def download_image(url, path, image_name):
-    Path(path).mkdir(parents=True, exist_ok=True)
+def download_image(url, image_name):
     image_response = requests.get(url)
     image_response.raise_for_status()
     extension = get_extension(url)
-    with open(f'{os.path.join(path, image_name)}{extension}', 'wb') as image:
+    with open(f'{image_name}{extension}', 'wb') as image:
         image.write(image_response.content)
 
 
@@ -67,7 +66,7 @@ if __name__ == '__main__':
     print('Скрипт запущен')
     comics_image_url, comics_text = get_random_comics_image_url_and_text()
     comics_extension = get_extension(comics_image_url)
-    download_image(comics_image_url, '', 'comics')
+    download_image(comics_image_url, 'comics')
     print('Комикс скачан в локальную директорию')
 
     get_wall_upload_server_payload = get_request_vk_api(
