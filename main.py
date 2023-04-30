@@ -60,15 +60,15 @@ def upload_image_to_server(upload_url, image_path):
     return payload['server'], payload['photo'], payload['hash']
 
 
-def save_image_to_album(server, photo, hash):
+def save_image_to_album(server_param, photo_param, hash_param):
     url = 'https://api.vk.com/method/photos.saveWallPhoto'
     params = {
         'access_token': vk_access_token,
         'v': vk_api_version,
         'group_id': vk_group_id,
-        'server': server,
-        'photo': photo,
-        'hash': hash,
+        'server': server_param,
+        'photo': photo_param,
+        'hash': hash_param,
     }
     response = requests.post(url, params=params)
     response.raise_for_status()
