@@ -9,7 +9,6 @@ pip install -r requirements.txt
 ```
 
 ## Переменные окружения
-- VK_APP_CLIENT_ID
 - VK_ACCESS_TOKEN
 - VK_GROUP_ID
 - VK_API_VERSION=5.131
@@ -21,7 +20,6 @@ pip install -r requirements.txt
 
 ```bash
 $ cat .env
-VK_APP_CLIENT_ID=123
 VK_ACCESS_TOKEN=abc123
 VK_GROUP_ID=321
 VK_API_VERSION=5.131
