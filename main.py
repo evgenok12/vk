@@ -35,12 +35,12 @@ def download_random_comic():
     return target_comic_text, target_comic_image_path
 
 
-def get_image_upload_url():
+def get_image_upload_url(access_token, api_version, group_id):
     url = 'https://api.vk.com/method/photos.getWallUploadServer'
     params = {
-        'access_token': vk_access_token,
-        'v': vk_api_version,
-        'group_id': vk_group_id
+        'access_token': access_token,
+        'v': api_version,
+        'group_id': group_id
     }
     response = requests.get(url, params=params)
     response.raise_for_status()
@@ -49,8 +49,8 @@ def get_image_upload_url():
     return payload['response']['upload_url']
 
 
-def upload_image_to_server(upload_url, image_path):
-    params = {'access_token': vk_access_token, 'v': vk_api_version}
+def upload_image_to_server(access_token, api_version, upload_url, image_path):
+    params = {'access_token': access_token, 'v': api_version}
     with open(image_path, 'rb') as comic:
         response = requests.post(
             upload_url, params=params, files={'photo': comic})
@@ -60,12 +60,13 @@ def upload_image_to_server(upload_url, image_path):
     return payload['server'], payload['photo'], payload['hash']
 
 
-def save_image_to_album(server_param, photo_param, hash_param):
+def save_image_to_album(
+        access_token, api_version, group_id, server_param, photo_param, hash_param):
     url = 'https://api.vk.com/method/photos.saveWallPhoto'
     params = {
-        'access_token': vk_access_token,
-        'v': vk_api_version,
-        'group_id': vk_group_id,
+        'access_token': access_token,
+        'v': api_version,
+        'group_id': group_id,
         'server': server_param,
         'photo': photo_param,
         'hash': hash_param,
@@ -77,12 +78,13 @@ def save_image_to_album(server_param, photo_param, hash_param):
     return payload['response'][0]['owner_id'], payload['response'][0]['id']
 
 
-def post_comic_to_wall(owner_id, photo_id, message):
+def post_comic_to_wall(
+        access_token, api_version, group_id, owner_id, photo_id, message):
     url = 'https://api.vk.com/method/wall.post'
     params = {
-        'access_token': vk_access_token,
-        'v': vk_api_version,
-        'owner_id': f'-{vk_group_id}',
+        'access_token': access_token,
+        'v': api_version,
+        'owner_id': f'-{group_id}',
         'from_group': 1,
         'message': message,
         'attachments': f'photo{owner_id}_{photo_id}'
@@ -93,7 +95,7 @@ def post_comic_to_wall(owner_id, photo_id, message):
     raise_for_status_vk_api(payload)
 
 
-if __name__ == '__main__':
+def main():
     env = Env()
     env.read_env()
     vk_access_token = env('VK_ACCESS_TOKEN')
@@ -105,18 +107,24 @@ if __name__ == '__main__':
     print('Комикс скачан в локальную директорию')
 
     try:
-        upload_url = get_image_upload_url()
+        upload_url = get_image_upload_url(
+            vk_access_token, vk_api_version, vk_group_id)
         print('URL для загрузки комикса получен')
         server_param, photo_param, hash_param = upload_image_to_server(
-            upload_url, image_path)
+            vk_access_token, vk_api_version, upload_url, image_path)
         print('Комикс загружен на сервер')
         owner_id, photo_id = save_image_to_album(
-            server_param, photo_param, hash_param)
+            vk_access_token, vk_api_version, vk_group_id, server_param, photo_param, hash_param)
         print('Комикс сохранен в альбоме группы')
-        post_comic_to_wall(owner_id, photo_id, comic_text)
+        post_comic_to_wall(
+            vk_access_token, vk_api_version, vk_group_id, owner_id, photo_id, comic_text)
         print('Комикс опубликован на стене группы')
     finally:
         os.remove(image_path)
         print('Комикс удален из локальной директории')
 
     print('Скрипт успешно завершил работу')
+
+
+if __name__ == '__main__':
+    main()
